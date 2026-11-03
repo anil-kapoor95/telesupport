@@ -1,0 +1,14 @@
+<?php
+<?php
+if (!defined("PJ_HOST")) define("PJ_HOST", "localhost");
+if (!defined("PJ_USER")) define("PJ_USER", "root");
+if (!defined("PJ_PASS")) define("PJ_PASS", "");
+if (!defined("PJ_DB")) define("PJ_DB", "telesupport");
+if (!defined("PJ_PREFIX")) define("PJ_PREFIX", "");
+if (!defined("PJ_USE_IV")) define("PJ_USE_IV", "0");
+if (!defined("PJ_INSTALL_FOLDER")) define("PJ_INSTALL_FOLDER", "/telesupport/");
+if (!defined("PJ_INSTALL_PATH")) define("PJ_INSTALL_PATH", "/Applications/XAMPP/xamppfiles/htdocs/telesupport/");
+if (!defined("PJ_INSTALL_URL")) define("PJ_INSTALL_URL", "http://localhost/telesupport/");
+if (!defined("PJ_SALT")) define("PJ_SALT", "DBACCKVA");
+if (!defined("PJ_INSTALLATION")) define("PJ_INSTALLATION", "MTE0NzQ2OTU1OTY4MjMxOTUyMjY2MzMyODQ5MzI3ODQzNTEyNDM1NjQ2Mzk3NjU1NjI2NDg5OTU1NzE3NjUxOTU1MTM0NTI1MzkyNDE1OTI4MTQ3MDg5OTcxNzA3MzMzMTYwMyAxMTE4MjkwMTUyNjQ2NTkzMTU1NDkwNjY3MTM1MTYxNjQ5OTczMDE3MjIwNTgyMzE5Njc3NTk5MTkwMDg2MDE4MTE5NDA2MDIyMjIwMDg2OTQ4NTg0ODk0ODE3MTc2MDM3NTQ0IDE2OTUwMTk2OTkxNDUyMzI1NzU0MTkxNTE5MDE0OTAwOTg3MTcwMjMxMTUyMDM0NTk2MzM1NzA1NTk5ODUyODM3MzU5NzE2NDMzNzk2NTA2NjIyMjMyNzg5NDc5MzgxMDExMiAxMzAwOTEyMTczMzEzMDM5Mjg3NzM1NTQ4NzUzNTg3NTUzNDQzODEzNTAyODk5ODU5OTUwNTY3ODU5MzIzOTQ1MDYxODM0NzM3MTMwNDg0MjcxMzgzMDE0MjQ2NzQ1MDkyNzUwIDE1MzA3MDcwNjUyOTM3Njk3MzQ0NTE2ODE0NDEyMTI3MjM4Njk3NTQ5Nzg3OTQ1ODY1NTAxNjA1MTY3MDI4NTYwNTk5MjU4NTc2NjI3MjQxOTQ4ODU5MjA4MDE2NTY5NDkwMQ==");
+?>
