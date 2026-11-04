@@ -78,7 +78,7 @@ class pjFrontPublic extends pjFront
 			
 			$this->set('status', 'OK');
 			$this->set('terms_arr', $this->getTerms($this->getForeignId()));
-			$this->set('summary', $this->getSummary());
+			$this->set('summary', $this->getVoucherSummary());
 			$this->set('cart', $cart);
 			$this->set('cart_arr', $cart_arr);
 		}
@@ -456,7 +456,9 @@ class pjFrontPublic extends pjFront
 			{
 				$booking_arr = $booking_arr[0];
 				
-				if(pjObject::getPlugin('pjPayments') !== NULL)
+				// a booking fully covered by a voucher has nothing to pay: no gateway form, no bank details
+				$nothing_to_pay = !empty($booking_arr['voucher_code']) && (float) $booking_arr['booking_deposit'] <= 0;
+				if(pjObject::getPlugin('pjPayments') !== NULL && !$nothing_to_pay)
 				{
 					$pjPlugin = pjPayments::getPluginName($booking_arr['payment_method']);
 					if(pjObject::getPlugin($pjPlugin) !== NULL)
@@ -547,10 +549,24 @@ class pjFrontPublic extends pjFront
 			}
 			
 			$this->set('status', 'OK');
-			$this->set('summary', $this->getSummary());
+			$this->set('summary', $this->getVoucherSummary());
 			$this->set('cart', $cart);
 			$this->set('cart_arr', $cart_arr);
 		}
+	}
+	
+	/**
+	 * The summary for the details / confirmation pages. A voucher that is not valid any more is shown to the customer
+	 * once (summary['voucher_error']) and forgotten, so the prices on the page are the ones that will be charged.
+	 */
+	protected function getVoucherSummary()
+	{
+		$summary = $this->getSummary();
+		if (!empty($summary['voucher_error']))
+		{
+			pjVoucherEngine::clearSession();
+		}
+		return $summary;
 	}
 		
 	public function pjActionLoadCart()

@@ -52,7 +52,7 @@ if (!defined("PJ_UPLOAD_PATH")) define("PJ_UPLOAD_PATH", "app/web/upload/");
 
 if (!defined("PJ_IMAGE_USE_THUMBNAIL")) define("PJ_IMAGE_USE_THUMBNAIL", true);
 
-if (!defined("PJ_SCRIPT_VERSION")) define("PJ_SCRIPT_VERSION", "4.1");
+if (!defined("PJ_SCRIPT_VERSION")) define("PJ_SCRIPT_VERSION", "5.0");
 if (!defined("PJ_SCRIPT_ID")) define("PJ_SCRIPT_ID", "102");
 if (!defined("PJ_SCRIPT_BUILD")) define("PJ_SCRIPT_BUILD", "4.0.0");
 if (!defined("PJ_SCRIPT_PREFIX")) define("PJ_SCRIPT_PREFIX", "appscheduler_");

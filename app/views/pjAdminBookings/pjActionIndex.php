@@ -35,7 +35,7 @@ $short_days = __('short_days', true);
 				</div>
 				<?php 
 				break;
-			case in_array($controller->_get->toString('err'), array('ABK08', 'ABK13', 'ABK14')):	
+			case in_array($controller->_get->toString('err'), array('ABK08', 'ABK13', 'ABK14', 'AV09')):	
 				?>
 				<div class="alert alert-danger">
 					<i class="fa fa-exclamation-triangle m-r-xs"></i>

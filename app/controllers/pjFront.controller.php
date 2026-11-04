@@ -176,22 +176,53 @@ class pjFront extends pjAppController
 			$services[] = array_merge(@$service_arr[$service_id], compact('date', 'start', 'start_ts', 'end_ts', 'employee_id'));
 		}
 		
-		if ((float) $this->option_arr['o_tax'] > 0)
+		// Voucher (re-validated from the database on every call, the session only remembers the code)
+		$discount = 0;
+		$voucher = NULL;
+		$voucher_error = NULL;
+		$code = pjVoucherEngine::getSessionCode();
+		if ($code !== NULL && !empty($services))
 		{
-			$tax = ($price * (float) $this->option_arr['o_tax']) / 100;
-		}
-		$total = $price + $tax;
-		switch ($this->option_arr['o_deposit_type'])
-		{
-			case 'percent':
-				$deposit = ($total * (float) $this->option_arr['o_deposit']) / 100;
-				break;
-			case 'amount':
-				$deposit = (float) $this->option_arr['o_deposit'];
-				break;
+			$lines = array();
+			foreach ($services as $service)
+			{
+				$lines[] = array(
+					'service_id' => isset($service['id']) ? $service['id'] : 0,
+					'price' => isset($service['price']) ? $service['price'] : 0,
+					'date' => $service['date'],
+					'start_ts' => $service['start_ts']
+				);
+			}
+			$res = pjVoucherEngine::evaluate($code, $lines, array(
+				'calendar_id' => $this->getForeignId(),
+				'option_arr' => $this->option_arr,
+				'email' => isset($FORM['c_email']) ? $FORM['c_email'] : ''
+			));
+			if ($res['status'] == 'OK')
+			{
+				$discount = $res['discount'];
+				$voucher = array(
+					'code' => $res['voucher']['code'],
+					'type' => $res['voucher']['type'],
+					'apply' => $res['voucher']['apply'],
+					'value' => $res['voucher']['discount'],
+					'label' => pjVoucherEngine::discountLabel($res['voucher'])
+				);
+				foreach ($res['line_discounts'] as $i => $amount)
+				{
+					$services[$i]['discount'] = $amount;
+				}
+			} else {
+				$voucher_error = $res;
+			}
 		}
 		
-		return compact('cart', 'services', 'tax', 'total', 'deposit', 'price');
+		$totals = pjVoucherEngine::totals($price, $discount, $this->option_arr);
+		$tax = $totals['tax'];
+		$total = $totals['total'];
+		$deposit = $totals['deposit'];
+		
+		return compact('cart', 'services', 'tax', 'total', 'deposit', 'price', 'discount', 'voucher', 'voucher_error');
 	}
 
 	protected function getDates($cid, $year=null, $month=null)

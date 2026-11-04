@@ -62,6 +62,66 @@ class pjFrontEnd extends pjFront
 		exit;
 	}
 
+	/**
+	 * Voucher box on the details page: apply a code. Only the code is remembered (in the session); the discount is
+	 * always recalculated from the database, see pjFront::getSummary().
+	 */
+	public function pjActionApplyVoucher()
+	{
+		if ($this->isXHR() && self::isPost())
+		{
+			if (pjVoucherEngine::isThrottled())
+			{
+				pjAppController::jsonResponse(array('status' => 'ERR', 'code' => 429, 'text' => __('front_voucher_throttled', true)));
+			}
+			$code = pjVoucherEngine::cleanCode($this->_post->check('code') ? $this->_post->toString('code') : '');
+			if ($code === '')
+			{
+				pjAppController::jsonResponse(array('status' => 'ERR', 'code' => 104, 'text' => __('front_voucher_missing', true)));
+			}
+			if ($this->cart->isEmpty())
+			{
+				pjAppController::jsonResponse(array('status' => 'ERR', 'code' => 104, 'text' => __('front_voucher_empty_cart', true)));
+			}
+			
+			$previous = pjVoucherEngine::getSessionCode();
+			pjVoucherEngine::setSessionCode($code);
+			$summary = $this->getSummary();
+			if (!empty($summary['voucher']))
+			{
+				pjVoucherEngine::setSessionCode($summary['voucher']['code']); // canonical spelling
+				pjVoucherEngine::resetFailures();
+				pjAppController::jsonResponse(array(
+					'status' => 'OK',
+					'code' => 200,
+					'text' => __('front_voucher_applied', true),
+					'discount' => pjCurrency::formatPrice($summary['discount'])
+				));
+			}
+			// keep the previously applied code (if any) when the new one is refused
+			if ($previous !== NULL)
+			{
+				pjVoucherEngine::setSessionCode($previous);
+			} else {
+				pjVoucherEngine::clearSession();
+			}
+			pjVoucherEngine::registerFailure();
+			$text = !empty($summary['voucher_error']['text']) ? $summary['voucher_error']['text'] : __('front_voucher_not_found', true);
+			pjAppController::jsonResponse(array('status' => 'ERR', 'code' => 101, 'text' => $text));
+		}
+		pjAppController::jsonResponse(array('status' => 'ERR', 'code' => 105, 'text' => __('system_105', true)));
+	}
+	
+	public function pjActionRemoveVoucher()
+	{
+		if ($this->isXHR() && self::isPost())
+		{
+			pjVoucherEngine::clearSession();
+			pjAppController::jsonResponse(array('status' => 'OK', 'code' => 200, 'text' => __('front_voucher_removed', true)));
+		}
+		pjAppController::jsonResponse(array('status' => 'ERR', 'code' => 105, 'text' => __('system_105', true)));
+	}
+
 	public function pjActionValidateCart()
 	{
 		if ($this->isXHR())
@@ -79,7 +139,7 @@ class pjFrontEnd extends pjFront
 		if ($this->isXHR())
 		{
 		    ini_set("display_errors", "On");
-		    error_reporting(E_ALL|E_STRICT);
+		    error_reporting(E_ALL & ~E_DEPRECATED); // E_STRICT is deprecated since PHP 8.4 and would be printed into the JSON answer
 		    
 			if (!$this->_post->check('as_preview') || !isset($_SESSION[$this->defaultForm]) || empty($_SESSION[$this->defaultForm]))
 			{
@@ -90,6 +150,14 @@ class pjFrontEnd extends pjFront
 			if (!$this->getValidate($summary))
 			{
 				pjAppController::jsonResponse(array('status' => 'ERR', 'code' => 111, 'text' => __('system_111', true)));
+			}
+			
+			// A voucher that stopped being valid after it was applied (expired, limit reached, disabled ...) must never be
+			// silently dropped nor silently honoured: tell the customer, forget the code and let them confirm the new price.
+			if (!empty($summary['voucher_error']))
+			{
+				pjVoucherEngine::clearSession();
+				pjAppController::jsonResponse(array('status' => 'ERR', 'code' => 116, 'text' => $summary['voucher_error']['text']));
 			}
 			
 			$dates = array();
@@ -147,10 +215,43 @@ class pjFrontEnd extends pjFront
 			$data['booking_deposit'] = $summary['deposit'];
 			$data['booking_tax'] = $summary['tax'];
 			$data['booking_total'] = $summary['total'];
+			// never accept discount data coming from the posted form: only the server-side voucher calculation sets them
+			unset($data['booking_discount'], $data['voucher_code']);
+			
+			$voucher_lock = false;
+			if (!empty($summary['voucher']))
+			{
+				// Serialise "check the usage limits + save the booking" per voucher: two customers using the last
+				// available use at the same moment cannot both pass the check.
+				$voucher_lock = pjVoucherEngine::lock($summary['voucher']['code']);
+				if ($voucher_lock === false)
+				{
+					pjAppController::jsonResponse(array('status' => 'ERR', 'code' => 117, 'text' => __('front_voucher_busy', true)));
+				}
+				$summary = $this->getSummary();
+				if (!empty($summary['voucher_error']) || empty($summary['voucher']))
+				{
+					pjVoucherEngine::unlock($voucher_lock);
+					pjVoucherEngine::clearSession();
+					pjAppController::jsonResponse(array('status' => 'ERR', 'code' => 116, 'text' => !empty($summary['voucher_error']) ? $summary['voucher_error']['text'] : __('front_voucher_not_found', true)));
+				}
+				$data['booking_price'] = $summary['price'];
+				$data['booking_deposit'] = $summary['deposit'];
+				$data['booking_tax'] = $summary['tax'];
+				$data['booking_total'] = $summary['total'];
+				$data['booking_discount'] = $summary['discount'];
+				$data['voucher_code'] = $summary['voucher']['code'];
+				if ((float) $summary['total'] <= 0)
+				{
+					// 100% discount: nothing to be paid online, the booking is complete as soon as it is made
+					$data['booking_status'] = $this->option_arr['o_status_if_paid'];
+				}
+			}
 			
 			$pjBookingModel = pjBookingModel::factory();
 			if (!$pjBookingModel->validates($data))
 			{
+				pjVoucherEngine::unlock($voucher_lock);
 				pjAppController::jsonResponse(array('status' => 'ERR', 'code' => 114, 'text' => __('system_114', true)));
 			}
 			if($data['payment_method'] == 'invoice')
@@ -158,6 +259,7 @@ class pjFrontEnd extends pjFront
 			    $data['booking_status'] = 'confirmed';
 			}
 			$booking_id = $pjBookingModel->setAttributes($data)->insert()->getInsertId();
+			pjVoucherEngine::unlock($voucher_lock);
 			if ($booking_id !== false && (int) $booking_id > 0)
 			{
 				$pjBookingServiceModel = pjBookingServiceModel::factory()->setBatchFields(array(
@@ -248,6 +350,8 @@ class pjFrontEnd extends pjFront
 				
 				// Reset SESSION vars
 				$this->cart->clear();
+				
+				pjVoucherEngine::clearSession();
 				
 				$_SESSION[$this->defaultForm] = NULL;
 				unset($_SESSION[$this->defaultForm]);
@@ -382,11 +486,22 @@ class pjFrontEnd extends pjFront
 	
 	public function pjActionLoadCss()
 	{
-		$theme = $this->_get->check('theme') ? $this->_get->toString('theme') : $this->option_arr['o_theme'];
-		if((int) $theme > 0)
+		$theme = $this->option_arr['o_theme'];
+		if ($this->_get->check('theme'))
 		{
-			$theme = 'theme' . $theme;
+			// only theme1 ... theme11 are accepted - the value is used to build a file name
+			$requested = pjTheme11::sanitizeThemeName($this->_get->toString('theme'));
+			if ($requested !== NULL)
+			{
+				$theme = $requested;
+			}
 		}
+		$theme = pjTheme11::sanitizeThemeName((string) $theme);
+		if ($theme === NULL)
+		{
+			$theme = 'theme1';
+		}
+		$wrapper_id = "pjWrapperAppScheduler_" . $this->getForeignId();
 		$dm = new pjDependencyManager(PJ_INSTALL_PATH, PJ_THIRD_PARTY_PATH);
 		$dm->load(PJ_CONFIG_PATH . 'dependencies.php')->resolve();
 		$arr = array(
@@ -398,6 +513,14 @@ class pjFrontEnd extends pjFront
 			array('file' => "$theme.css", 'path' => PJ_CSS_PATH . "themes/")
 		);
 		header("Content-Type: text/css; charset=utf-8");
+		
+		$t11 = NULL;
+		if ($theme === pjTheme11::THEME)
+		{
+			$t11 = pjTheme11::values($this->option_arr);
+			// @import has to be the very first rule of the stylesheet
+			echo pjTheme11::fontImport($t11);
+		}
 		foreach ($arr as $item)
 		{
 			ob_start();
@@ -413,11 +536,16 @@ class pjFrontEnd extends pjFront
 						PJ_INSTALL_URL . PJ_FRAMEWORK_LIBS_PATH . 'pj/fonts/glyphicons',
 						PJ_INSTALL_URL . $dm->getPath('font_awesome') . 'fonts/',
 						PJ_INSTALL_URL . $dm->getPath('pj_jquery_ui') . 'css/smoothness/images/',
-						"pjWrapperAppScheduler_" . $this->getForeignId()
+						$wrapper_id
 					),
 					$string
 				) . "\n";
 			}
+		}
+		if ($t11 !== NULL)
+		{
+			// Theme 11: the saved colours / fonts / shape as one block of --t11-* variables (theme11.css only reads them)
+			echo pjTheme11::cssVariables($t11, $wrapper_id);
 		}
 		exit;
 	}

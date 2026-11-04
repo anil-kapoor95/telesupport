@@ -56,6 +56,17 @@
                 </li>
             </ul>
         </div>
+
+        <?php
+        // Theme 11: colour / font / shape panel (see elements/t11_panel.php)
+        $t11_selected = pjTheme11::sanitizeThemeName((string) $selected_theme) === pjTheme11::THEME;
+        $t11_btn_label = __('t11_customize', true);
+        if ($t11_btn_label === NULL || $t11_btn_label === '')
+        {
+            $t11_btn_label = 'Customize design';
+        }
+        ?>
+        <button type="button" id="t11Toggle" class="btn btn-primary t11-fab<?php echo $t11_selected ? '' : ' hidden'; ?>" data-t11="toggle"><i class="fa fa-paint-brush m-r-xs"></i> <?php echo pjSanitize::html($t11_btn_label); ?></button>
     </div>
 
     <div class="col-1of3 text-center">
@@ -113,3 +124,5 @@
 <div class="hidden" id="phone_landscape_info"><?php __('plugin_base_editor_phone_landscape_info'); ?></div>
 <div class="hidden" id="tablet_portrait_info"><?php __('plugin_base_editor_tablet_portrait_info'); ?></div>
 <div class="hidden" id="tablet_landscape_info"><?php __('plugin_base_editor_tablet_landscape_info'); ?></div>
+
+<?php include dirname(__FILE__) . '/elements/t11_panel.php'; ?>

@@ -1,4 +1,5 @@
 <div class="container-fluid">
+	<?php $t11_step = 0; include PJ_VIEWS_PATH . 'pjFrontPublic/elements/t11_steps.php'; ?>
 	<div class="row">
 		<div class="col-lg-12 text-right">
 			<?php include PJ_VIEWS_PATH . 'pjFrontEnd/elements/locale.php';?>

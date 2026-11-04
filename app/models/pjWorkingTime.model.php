@@ -100,25 +100,25 @@ class pjWorkingTimeModel extends pjAppModel
 		
 		$wt = array();
 		if (!empty($item) && $date >= $item[0]['from_date'] && $date <= $item[0]['to_date']) {
-			$d = getdate(strtotime($item[0]['start_time']));
+			$d = getdate(strtotime((string) $item[0]['start_time']));
 			$wt['start_hour'] = $d['hours'];
 			$wt['start_minutes'] = $d['minutes'];
 			$wt['start_ts'] = strtotime($date . " " . $item[0]['start_time']);
 			$wt['start_time'] = date('H:i', strtotime($date . " " . $item[0]['start_time']));
 			
-			$d = getdate(strtotime($item[0]['end_time']));
+			$d = getdate(strtotime((string) $item[0]['end_time']));
 			$wt['end_hour'] = $d['hours'];
 			$wt['end_minutes'] = $d['minutes'];
 			$wt['end_ts'] = strtotime($date . " " . $item[0]['end_time']);
 			$wt['end_time'] = date('H:i', strtotime($date . " " . $item[0]['end_time']));
 				
-			$d = getdate(strtotime($item[0]['start_lunch']));
+			$d = getdate(strtotime((string) $item[0]['start_lunch']));
 			$wt['lunch_start_hour'] = $d['hours'];
 			$wt['lunch_start_minutes'] = $d['minutes'];
 			$wt['lunch_start_ts'] = strtotime($date . " " . $item[0]['start_lunch']);
 			$wt['lunch_start_time'] = date('H:i', strtotime($date . " " . $item[0]['start_lunch']));
 			
-			$d = getdate(strtotime($item[0]['end_lunch']));
+			$d = getdate(strtotime((string) $item[0]['end_lunch']));
 			$wt['lunch_end_hour'] = $d['hours'];
 			$wt['lunch_end_minutes'] = $d['minutes'];
 			$wt['lunch_end_ts'] = strtotime($date . " " . $item[0]['end_lunch']);
@@ -132,7 +132,7 @@ class pjWorkingTimeModel extends pjAppModel
 			{
 				if (strpos($k, $day . '_lunch_from') !== false)
 				{
-					$d = getdate(strtotime($v));
+					$d = getdate(strtotime((string) $v));
 					$wt['lunch_start_hour'] = $d['hours'];
 					$wt['lunch_start_minutes'] = $d['minutes'];
 					$wt['lunch_start_ts'] = strtotime($date . " " . $v);
@@ -142,7 +142,7 @@ class pjWorkingTimeModel extends pjAppModel
 				
 				if (strpos($k, $day . '_lunch_to') !== false)
 				{
-					$d = getdate(strtotime($v));
+					$d = getdate(strtotime((string) $v));
 					$wt['lunch_end_hour'] = $d['hours'];
 					$wt['lunch_end_minutes'] = $d['minutes'];
 					$wt['lunch_end_ts'] = strtotime($date . " " . $v);
@@ -152,7 +152,7 @@ class pjWorkingTimeModel extends pjAppModel
 				
 				if (strpos($k, $day . '_from') !== false && strpos($k, $day . '_lunch_from') === false && !is_null($v))
 				{
-					$d = getdate(strtotime($v));
+					$d = getdate(strtotime((string) $v));
 					$wt['start_hour'] = $d['hours'];
 					$wt['start_minutes'] = $d['minutes'];
 					$wt['start_ts'] = strtotime($date . " " . $v);
@@ -162,7 +162,7 @@ class pjWorkingTimeModel extends pjAppModel
 			
 				if (strpos($k, $day . '_to') !== false && strpos($k, $day . '_lunch_to') === false && !is_null($v))
 				{
-					$d = getdate(strtotime($v));
+					$d = getdate(strtotime((string) $v));
 					$wt['end_hour'] = $d['hours'];
 					$wt['end_minutes'] = $d['minutes'];
 					$wt['end_ts'] = strtotime($date . " " . $v);

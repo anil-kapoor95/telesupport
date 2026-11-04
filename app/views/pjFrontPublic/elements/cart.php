@@ -21,8 +21,10 @@
 		</div><!-- /.row -->
 	</li><!-- /.list-group-item alert alert-dismissible pjAsChosenService -->
 	<?php
+	$ld_n = -1;
 	foreach ($cart as $key => $value)
 	{
+		$ld_n++;
 		list($cid, $date, $service_id, $start_ts, $end_ts, $employee_id) = explode("|", $key);
 		
 		$fixed_start_ts = $start_ts + $cart_arr[$service_id]['before'] * 60;
@@ -59,6 +61,7 @@
 							<p>
 								<strong><?php echo pjCurrency::formatPrice($cart_arr[$service_id]['price'])?></strong>
 							</p>
+							<?php $ld_i = $ld_n; $ld_class = 'pjAsLineDiscount'; include PJ_VIEWS_PATH . 'pjFrontPublic/elements/line_discount.php'; ?>
 							<button type="button" class="close pjAsBtnRemove asSelectorRemoveFromCart" data-dismiss="alert" aria-label="Close" data-start_ts="<?php echo $start_ts; ?>" data-end_ts="<?php echo $end_ts; ?>" data-date="<?php echo $date; ?>" data-service_id="<?php echo $service_id; ?>" data-employee_id="<?php echo $employee_id; ?>"><span aria-hidden="true">×</span></button>
 						</div><!-- /.col-lg-4 col-md-4 col-sm-5 col-xs-5 pjAsChosenServiceActions -->
 					</div><!-- /.row -->

@@ -237,7 +237,7 @@ class pjToolkit
 		}
 		if (!is_array($text))
 		{
-			echo !$escape ? $text : htmlspecialchars($text, ENT_QUOTES);
+			echo !$escape ? $text : htmlspecialchars((string) $text, ENT_QUOTES);
 		} else {
 			if (!$escape)
 			{

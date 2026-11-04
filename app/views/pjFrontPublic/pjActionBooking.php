@@ -1,6 +1,8 @@
 <?php
 if (isset($tpl['status']) && $tpl['status'] == "OK")
 {
+	$t11_step = 4;
+	include PJ_VIEWS_PATH . 'pjFrontPublic/elements/t11_steps.php';
 	?>
 	<div class="panel-heading pjAsHead">
 		<div class="row">

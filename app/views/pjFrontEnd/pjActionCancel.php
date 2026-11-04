@@ -105,6 +105,11 @@
 									?>
 								</td>
 							</tr>
+							<?php if (!$hidePrices && !empty($tpl['arr']['voucher_code']) && (float) $tpl['arr']['booking_discount'] > 0) : ?>
+							<tr>
+								<td colspan="2"><?php __('front_voucher_discount'); ?> (<?php echo pjSanitize::html($tpl['arr']['voucher_code']); ?>): -<?php echo pjCurrency::formatPrice($tpl['arr']['booking_discount']); ?></td>
+							</tr>
+							<?php endif; ?>
 							<?php if (!$hidePrices) : ?>
 							<tr>
 								<td colspan="2"><?php __('front_cart_total'); ?>: <?php echo pjCurrency::formatPrice($tpl['arr']['booking_total'])?></td>

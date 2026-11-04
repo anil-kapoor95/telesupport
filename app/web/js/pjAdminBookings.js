@@ -101,20 +101,71 @@ var jQuery_1_8_2 = jQuery_1_8_2 || $.noConflict();
 				}
 				$modalAddItem.modal('hide');
 				
-				$.post("index.php?controller=pjAdminBookings&action=pjActionGetPrice", $form.serialize()).done(function (data) {
-					if (data.status == 'OK') {
-						$form.find("#booking_price").val(data.data.price.toFixed(2));
-						$form.find("#booking_deposit").val(data.data.deposit.toFixed(2));
-						$form.find("#booking_tax").val(data.data.tax.toFixed(2));
-						$form.find("#booking_total").val(data.data.total.toFixed(2));
-						$("#price_format").html(data.data_format.price_format);
-						$("#tax_format").html(data.data_format.tax_format);
-						$("#total_format").html(data.data_format.total_format);
-						$("#deposit_format").html(data.data_format.deposit_format);
-					}
-				});
+				recalcPrice($form);
 			});
 		}
+		
+		function recalcPrice($form) {
+			if (!$form || $form.length === 0) {
+				$form = $frmCreateBooking.length > 0 ? $frmCreateBooking : $frmUpdateBooking;
+			}
+			if ($form.length === 0) {
+				return;
+			}
+			// the voucher box lives in the right-hand panel (outside the <form>): keep the form's hidden field in sync
+			$form.find("#voucher_code").val($.trim($("#voucher_input").val()));
+			$.post("index.php?controller=pjAdminBookings&action=pjActionGetPrice", $form.serialize()).done(function (data) {
+				if (data.status == 'OK') {
+					$form.find("#booking_price").val(data.data.price.toFixed(2));
+					$form.find("#booking_deposit").val(data.data.deposit.toFixed(2));
+					$form.find("#booking_tax").val(data.data.tax.toFixed(2));
+					$form.find("#booking_total").val(data.data.total.toFixed(2));
+					$form.find("#booking_discount").val(data.data.discount.toFixed(2));
+					$("#price_format").html(data.data_format.price_format);
+					$("#tax_format").html(data.data_format.tax_format);
+					$("#total_format").html(data.data_format.total_format);
+					$("#deposit_format").html(data.data_format.deposit_format);
+					var $msg = $("#voucherMsg");
+					if (data.data.discount > 0) {
+						$("#discount_format").html("-" + data.data_format.discount_format);
+						$("#discount_row").show();
+					} else {
+						$("#discount_row").hide();
+					}
+					if (data.voucher_error) {
+						$msg.removeClass("text-navy").addClass("text-danger").text(data.voucher_error).show();
+					} else if (data.voucher_code) {
+						$form.find("#voucher_code").val(data.voucher_code);
+						$("#voucher_input").val(data.voucher_code);
+						$msg.removeClass("text-danger").addClass("text-navy").text(data.voucher_text || data.voucher_code).show();
+					} else {
+						$msg.hide().text("");
+					}
+				}
+			});
+		}
+		
+		$(document).on("click", "#btnApplyVoucher", function (e) {
+			e.preventDefault();
+			recalcPrice(null);
+		});
+		
+		$(document).on("keydown", "#voucher_input", function (e) {
+			if (e.which === 13) {
+				e.preventDefault();
+				recalcPrice(null);
+			}
+		});
+		
+		$(document).on("input change keyup", "#voucher_input", function () {
+			$("#voucher_code").val($.trim($(this).val()));
+		});
+		
+		$(document).on("change", "#voucher_input", function () {
+			if ($.trim($(this).val()) === "") {
+				recalcPrice(null);
+			}
+		});
 		if ($frmCreateBooking.length > 0 && validate) {
 			$frmCreateBooking.validate({
 				rules: {

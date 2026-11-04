@@ -87,6 +87,58 @@ class pjAdminBookings extends pjAdmin
 		}
 	}
 	
+	/**
+	 * Voucher for the services of a booking (admin side). The browser only sends the code: the price of every service
+	 * comes from the booking items stored in the database and the discount is calculated by pjVoucherEngine.
+	 * A voucher that is already stored on the booking being edited keeps working even if it has expired meanwhile
+	 * (the customer got it when it was valid); a new / changed code is fully validated.
+	 *
+	 * @return array voucher (row|null), discount, error (text|null)
+	 */
+	private function resolveVoucher($bs_arr, $code, $email, $booking_id = 0, $stored_code = null, $stored_discount = 0)
+	{
+		$code = pjVoucherEngine::cleanCode($code);
+		$res = array('voucher' => null, 'discount' => 0.0, 'error' => null);
+		if ($code === '')
+		{
+			return $res;
+		}
+		$lines = array();
+		foreach ($bs_arr as $item)
+		{
+			$lines[] = array('service_id' => $item['service_id'], 'price' => $item['price'], 'date' => $item['date'], 'start_ts' => $item['start_ts']);
+		}
+		$keep = $stored_code !== null && $stored_code !== '' && strcasecmp($stored_code, $code) === 0;
+		if ($keep && pjVoucherEngine::findByCode($code, $this->getForeignId()) === null)
+		{
+			// the voucher was deleted after this booking was made: the booking keeps the discount it already had
+			$price = 0;
+			foreach ($bs_arr as $item)
+			{
+				$price += $item['price'];
+			}
+			$res['voucher'] = array('code' => $stored_code, 'type' => 'amount', 'apply' => 'total', 'discount' => (float) $stored_discount);
+			$res['discount'] = min((float) $stored_discount, (float) $price);
+			return $res;
+		}
+		$eval = pjVoucherEngine::evaluate($code, $lines, array(
+			'calendar_id' => $this->getForeignId(),
+			'option_arr' => $this->option_arr,
+			'email' => $email,
+			'exclude_booking_id' => (int) $booking_id,
+			'skip_window' => $keep,
+			'check_usage' => !$keep
+		));
+		if ($eval['status'] != 'OK')
+		{
+			$res['error'] = $eval['text'];
+			return $res;
+		}
+		$res['voucher'] = $eval['voucher'];
+		$res['discount'] = $eval['discount'];
+		return $res;
+	}
+
 	public function pjActionCreate()
 	{
 		$this->checkLogin();
@@ -111,7 +163,36 @@ class pjAdminBookings extends pjAdmin
 				$data['cc_exp_year'] = ':NULL';
 				$data['cc_exp_month'] = ':NULL';
 			}
+			// discount: never taken from the form, always calculated here from the booking items
+			$data['booking_discount'] = ':NULL';
+			$data['voucher_code'] = ':NULL';
+			$voucher_lock = false;
+			$voucher_code = pjVoucherEngine::cleanCode($this->_post->toString('voucher_code'));
+			if ($voucher_code !== '' && $this->_post->toString('tmp_hash') != '')
+			{
+				$voucher_lock = pjVoucherEngine::lock($voucher_code);
+				$bs_arr = pjBookingServiceModel::factory()->where('t1.tmp_hash', $this->_post->toString('tmp_hash'))->findAll()->getData();
+				$v = $voucher_lock === false ? array('voucher' => null, 'error' => 'busy') : $this->resolveVoucher($bs_arr, $voucher_code, $this->_post->toString('c_email'));
+				if (empty($v['voucher']))
+				{
+					pjVoucherEngine::unlock($voucher_lock);
+					pjUtil::redirect($_SERVER['PHP_SELF'] . "?controller=pjAdminBookings&action=pjActionIndex&err=AV09");
+				}
+				$price = 0;
+				foreach ($bs_arr as $item)
+				{
+					$price += $item['price'];
+				}
+				$totals = pjVoucherEngine::totals($price, $v['discount'], $this->option_arr);
+				$data['booking_price'] = $totals['price'];
+				$data['booking_discount'] = $totals['discount'];
+				$data['booking_tax'] = $totals['tax'];
+				$data['booking_total'] = $totals['total'];
+				$data['booking_deposit'] = $totals['deposit'];
+				$data['voucher_code'] = $v['voucher']['code'];
+			}
 			$id = pjBookingModel::factory(array_merge($this->_post->raw(), $data))->insert()->getInsertId();
+			pjVoucherEngine::unlock($voucher_lock);
 			if ($id !== false && (int) $id > 0)
 			{
 				if ($this->_post->toString('tmp_hash') != '')
@@ -441,6 +522,9 @@ class pjAdminBookings extends pjAdmin
 			$value = $this->_post->toString('tmp_hash');
 		}
 		
+		$discount = 0;
+		$voucher_error = null;
+		$voucher_code = '';
 		if (isset($key) && isset($value))
 		{
 			$bs_arr = pjBookingServiceModel::factory()->where($key, $value)->findAll()->getData();
@@ -452,35 +536,45 @@ class pjAdminBookings extends pjAdmin
 			{
 				$price += $service['price'];
 			}
+			
+			if ($this->_post->check('voucher_code') && pjVoucherEngine::cleanCode($this->_post->toString('voucher_code')) !== '')
+			{
+				$booking_id = $this->_post->check('id') ? $this->_post->toInt('id') : 0;
+				$stored = null;
+				$stored_discount = 0;
+				if ($booking_id > 0)
+				{
+					$b = pjBookingModel::factory()->find($booking_id)->getData();
+					$stored = !empty($b) ? $b['voucher_code'] : null;
+					$stored_discount = !empty($b) ? $b['booking_discount'] : 0;
+				}
+				$v = $this->resolveVoucher($bs_arr, $this->_post->toString('voucher_code'), $this->_post->toString('c_email'), $booking_id, $stored, $stored_discount);
+				if (!empty($v['voucher']))
+				{
+					$discount = $v['discount'];
+					$voucher_code = $v['voucher']['code'];
+				} else {
+					$voucher_error = $v['error'];
+				}
+			}
 		}
 		
-		if ((float) $this->option_arr['o_tax'] > 0)
-		{
-			$tax = ($price * (float) $this->option_arr['o_tax']) / 100;
-		}
-		
-		$total = $price + $tax;
-		
-		switch ($this->option_arr['o_deposit_type'])
-		{
-			case 'percent':
-				$deposit = ($total * (float) $this->option_arr['o_deposit']) / 100;
-				break;
-			case 'amount':
-				$deposit = (float) $this->option_arr['o_deposit'];
-				break;
-		}
+		$totals = pjVoucherEngine::totals($price, $discount, $this->option_arr);
+		$tax = $totals['tax'];
+		$total = $totals['total'];
+		$deposit = $totals['deposit'];
 		
 		$price_format = pjCurrency::formatPrice($price);
+		$discount_format = pjCurrency::formatPrice($discount);
 		$tax_format = pjCurrency::formatPrice($tax);
 		$total_format = pjCurrency::formatPrice($total);
 		$deposit_format = pjCurrency::formatPrice($deposit);
 		
-		$data = compact('price', 'deposit', 'tax', 'total');
+		$data = compact('price', 'discount', 'deposit', 'tax', 'total');
 		$data = array_map('floatval', $data);
-		$data_format = compact('price_format', 'deposit_format', 'tax_format', 'total_format');
+		$data_format = compact('price_format', 'discount_format', 'deposit_format', 'tax_format', 'total_format');
 		
-		self::jsonResponse(array('status' => 'OK', 'code' => 200, 'text' => '', 'data' => $data, 'data_format' => $data_format));
+		self::jsonResponse(array('status' => 'OK', 'code' => 200, 'text' => '', 'data' => $data, 'data_format' => $data_format, 'voucher_code' => $voucher_code, 'voucher_text' => $voucher_code !== '' ? __('front_voucher_applied', true) : '', 'voucher_error' => $voucher_error));
 	}
 	
 	public function pjActionGetService()
@@ -651,8 +745,37 @@ class pjAdminBookings extends pjAdmin
 				$data['cc_exp_month'] = ':NULL';
 			}
 			$arr = $pjBookingModel->find($this->_post->toInt('id'))->getData();
-							
+			
+			// discount: never taken from the form, always calculated here from the booking items
+			$data['booking_discount'] = ':NULL';
+			$data['voucher_code'] = ':NULL';
+			$voucher_lock = false;
+			$voucher_code = pjVoucherEngine::cleanCode($this->_post->toString('voucher_code'));
+			if ($voucher_code !== '')
+			{
+				$voucher_lock = pjVoucherEngine::lock($voucher_code);
+				$bs_arr = pjBookingServiceModel::factory()->where('t1.booking_id', $arr['id'])->findAll()->getData();
+				$v = $voucher_lock === false ? array('voucher' => null, 'error' => 'busy') : $this->resolveVoucher($bs_arr, $voucher_code, $this->_post->toString('c_email'), $arr['id'], $arr['voucher_code'], $arr['booking_discount']);
+				if (empty($v['voucher']))
+				{
+					pjVoucherEngine::unlock($voucher_lock);
+					pjUtil::redirect($_SERVER['PHP_SELF'] . "?controller=pjAdminBookings&action=pjActionIndex&err=AV09");
+				}
+				$price = 0;
+				foreach ($bs_arr as $item)
+				{
+					$price += $item['price'];
+				}
+				$totals = pjVoucherEngine::totals($price, $v['discount'], $this->option_arr);
+				$data['booking_price'] = $totals['price'];
+				$data['booking_discount'] = $totals['discount'];
+				$data['booking_tax'] = $totals['tax'];
+				$data['booking_total'] = $totals['total'];
+				$data['booking_deposit'] = $totals['deposit'];
+				$data['voucher_code'] = $v['voucher']['code'];
+			}
 			pjBookingModel::factory()->set('id', $this->_post->toInt('id'))->modify(array_merge($this->_post->raw(), $data));
+			pjVoucherEngine::unlock($voucher_lock);
 			pjUtil::redirect(PJ_INSTALL_URL . "index.php?controller=pjAdminBookings&action=pjActionIndex&err=ABK01");
 		} 
 		

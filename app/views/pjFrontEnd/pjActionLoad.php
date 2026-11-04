@@ -130,7 +130,7 @@ var pjQ = pjQ || {},
 			loadScript("<?php echo PJ_INSTALL_URL . $dm->getPath('pj_validate'); ?>pjQuery.validate.min.js", function () {
 				loadScript("<?php echo PJ_INSTALL_URL . $dm->getPath('pj_jquery_ui'); ?>js/pjQuery-ui.custom.min.js", function () {
 					loadScript("<?php echo PJ_INSTALL_URL . $dm->getPath('pj_bootstrap'); ?>pjQuery.bootstrap.min.js", function () {
-						loadScript("<?php echo PJ_INSTALL_URL . PJ_JS_PATH; ?>pjAppScheduler.js", function () {
+						loadScript("<?php echo PJ_INSTALL_URL . PJ_JS_PATH; ?>pjAppScheduler.js<?php $__js_fs = rtrim(PJ_INSTALL_PATH, '/\\') . '/' . PJ_JS_PATH . 'pjAppScheduler.js'; echo @file_exists($__js_fs) ? '?v=' . @filemtime($__js_fs) : ''; /* version stamp: an updated script is never served from an old browser cache */ ?>", function () {
 							<?php if($tpl['option_arr']['o_captcha_type_front'] == 'google'): ?>
 						    loadScript('https://www.google.com/recaptcha/api.js', function () {
                             <?php endif; ?>

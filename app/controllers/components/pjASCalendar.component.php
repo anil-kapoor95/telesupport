@@ -2,6 +2,7 @@
 class pjASCalendar extends pjBaseCalendar
 {
 	private $dates = array();
+	private $options = array();
 	
 	public function __construct()
 	{

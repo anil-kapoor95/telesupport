@@ -134,6 +134,12 @@
 
 #pjWrapper .pjAsSectionTotal { font-size: 15px; font-weight: bold; text-transform: uppercase; }
 #pjWrapper .pjAsSectionPrice { font-size: 21px; font-weight: bold; }
+/* amounts never break ("-10.00" / "€" on two lines); in the discount row a long label wraps instead */
+#pjWrapper .pjAsSectionPrice { white-space: nowrap; }
+#pjWrapper .pjAsVoucherRow { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+#pjWrapper .pjAsVoucherRow::before, #pjWrapper .pjAsVoucherRow::after { display: none; }
+#pjWrapper .pjAsVoucherRow .pjAsSectionTotal { float: none; min-width: 0; flex: 1 1 auto; overflow-wrap: anywhere; }
+#pjWrapper .pjAsVoucherRow .pjAsSectionPrice { float: none; flex: 0 0 auto; margin-left: auto; text-align: right; }
 
 #pjWrapper .pjAsCheckout .control-label { font-weight: normal; text-align: left; }
 #pjWrapper .pjAsCheckout .asterisk { font-weight: bold; }
@@ -178,6 +184,14 @@
 .pjAsjQueryUI td{width: 32px;}
 .pjAsjQueryUI td span, 
 .pjAsjQueryUI td a{text-align: center !important;}
+/* ==========================================================================
+	#Theme 11 helpers (step tracker + slot legend) - only theme11.css shows them
+========================================================================== */
+#pjWrapper .pjAsT11Steps,
+#pjWrapper .pjAsT11Legend,
+#pjWrapper .pjAsT11Summary,
+#pjWrapper .pjAsT11Pay { display: none; }
+
 /* ==========================================================================
 	#Responsive
 ========================================================================== */
@@ -246,3 +260,15 @@
 
 	#pjWrapper .pjAsAddToCartForm .pjAsBtn { margin: 2px 5px; }
 }
+/* Voucher / discount code box (details page) */
+#pjWrapper .pjAsVoucher { margin: 10px 0 18px; }
+#pjWrapper .pjAsVoucherLabel { display: block; margin: 0 0 6px; font-weight: 600; }
+#pjWrapper .pjAsVoucherForm { display: flex; align-items: stretch; gap: 8px; }
+#pjWrapper .pjAsVoucherForm .form-control { flex: 1 1 auto; min-width: 0; text-transform: uppercase; }
+#pjWrapper .pjAsVoucherForm .form-control::placeholder { text-transform: none; }
+#pjWrapper .pjAsVoucherForm .btn { flex: 0 0 auto; }
+#pjWrapper .pjAsVoucherOn { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 8px 12px; border: 1px dashed rgba(0, 0, 0, .35); border-radius: 4px; }
+#pjWrapper .pjAsVoucherMsg { margin-top: 6px; font-size: .9em; }
+#pjWrapper .pjAsVoucherErr { color: #c0392b; }
+#pjWrapper .pjAsVoucherOk { color: #2e7d32; }
+#pjWrapper .pjAsVoucherNotice { margin-bottom: 10px; }

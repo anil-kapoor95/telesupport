@@ -1,4 +1,5 @@
 <div class="container-fluid">
+	<?php $t11_step = 2; include PJ_VIEWS_PATH . 'pjFrontPublic/elements/t11_steps.php'; ?>
 	<div class="panel panel-default pjAsContainer">
 		<?php
 		if (isset($tpl['status']) && $tpl['status'] == 'OK')
@@ -57,6 +58,7 @@
 			<?php include PJ_VIEWS_PATH . 'pjFrontPublic/elements/cart.php';  ?>
 			
 			<div class="panel-body pjAsBody pjAsCheckout">
+				<?php $t11_voucher_box = true; include PJ_VIEWS_PATH . 'pjFrontPublic/elements/t11_summary.php'; ?>
 				<div class="clearfix">
 					<h3 class="pull-left text-uppercase pjAsSectionTotal"><?php __('single_price');?></h3><!-- /.pull-left text-uppercase pjAsSectionTotal -->
 
@@ -64,6 +66,7 @@
 						<strong><?php echo pjCurrency::formatPrice($tpl['summary']['price']);?></strong>
 					</h3><!-- /.pull-right text-uppercase pjAsSectionPrice -->
 				</div><!-- /.clearfix -->
+				<?php include PJ_VIEWS_PATH . 'pjFrontPublic/elements/voucher_discount_row.php'; ?>
 				<?php 
 				if ($tpl['summary']['tax'] > 0)
 				{
@@ -93,7 +96,8 @@
 					</h3><!-- /.pull-right text-uppercase pjAsSectionPrice -->
 				</div><!-- /.clearfix -->
 				
-				<h3 class="text-uppercase pjAsSectionTitle"><?php __('front_booking_form');?>:</h3><!-- /.pull-left text-uppercase pjAsSectionTitle -->
+				<?php include PJ_VIEWS_PATH . 'pjFrontPublic/elements/voucher.php'; ?>
+				<h3 class="text-uppercase pjAsSectionTitle"><?php __('front_booking_form');?><span class="pjAsT11Colon">:</span></h3><!-- /.pull-left text-uppercase pjAsSectionTitle -->
 				
 				<div class="form-horizontal">
 					<form role="form" data-toggle="validator" method="post" action="" novalidate="true" class="asSelectorCheckoutForm">

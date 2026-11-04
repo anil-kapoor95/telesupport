@@ -259,6 +259,10 @@ class pjAdminOptions extends pjAdmin
 	public function pjActionPreview()
 	{
 		$this->appendJs('pjAdminOptions.js');
+		// Theme 11 colour panel (live preview + save / reset)
+		$this->appendCss('t11-admin.css');
+		$this->appendJs('pjAdminTheme11.js');
+		$this->set('t11', pjTheme11::adminData($this->option_arr));
 	}
 	
 	public function pjActionUpdate()
@@ -390,13 +394,87 @@ class pjAdminOptions extends pjAdmin
 			self::jsonResponse(array('status' => 'ERR', 'code' => 102, 'text' => 'Missing, empty or invalid parameters.'));
 		}
 		
+		$theme = pjTheme11::sanitizeThemeName($this->_post->toString('theme'));
+		if ($theme === NULL)
+		{
+			self::jsonResponse(array('status' => 'ERR', 'code' => 102, 'text' => 'Missing, empty or invalid parameters.'));
+		}
+		
 		pjOptionModel::factory()
 			->where('foreign_id', $this->getForeignId())
 			->where('`key`', 'o_theme')
 			->limit(1)
-			->modifyAll(array('value' => 'theme1|theme2|theme3|theme4|theme5|theme6|theme7|theme8|theme9|theme10::' . $this->_post->toString('theme')));
+			->modifyAll(array('value' => 'theme1|theme2|theme3|theme4|theme5|theme6|theme7|theme8|theme9|theme10|theme11::' . $theme));
 		
 		self::jsonResponse(array('status' => 'OK', 'code' => 200, 'text' => 'Theme has been changed.'));
+	}
+	
+	/**
+	 * Theme 11: saves the colours / fonts / shape chosen in the "Theme 11 colours" panel (Options > Preview).
+	 * Every value is validated by pjTheme11::clean(); invalid values are ignored, never stored.
+	 * mode=reset restores the default palette (Sunset Coral).
+	 */
+	public function pjActionSaveTheme11()
+	{
+		$this->setAjax(true);
+		
+		if (!$this->isXHR())
+		{
+			self::jsonResponse(array('status' => 'ERR', 'code' => 100, 'text' => 'Missing headers.'));
+		}
+		
+		if (!self::isPost())
+		{
+			self::jsonResponse(array('status' => 'ERR', 'code' => 101, 'text' => 'HTTP method not allowed.'));
+		}
+		
+		$this->checkLogin();
+		if (!pjAuth::factory('pjAdminOptions', 'pjActionPreview')->hasAccess())
+		{
+			self::jsonResponse(array('status' => 'ERR', 'code' => 103, 'text' => 'Access denied.'));
+		}
+		
+		$pjOptionModel = pjOptionModel::factory();
+		$defaults = pjTheme11::defaults();
+		$reset = $this->_post->check('mode') && $this->_post->toString('mode') === 'reset';
+		$saved = 0;
+		foreach ($defaults as $token => $default)
+		{
+			$value = $default;
+			if (!$reset)
+			{
+				if (!$this->_post->check($token))
+				{
+					continue;
+				}
+				$value = pjTheme11::clean($token, $this->_post->toString($token));
+				if ($value === NULL)
+				{
+					continue;
+				}
+			}
+			$key = 'o_theme11_' . $token;
+			$exists = $pjOptionModel->reset()->where('foreign_id', $this->getForeignId())->where('`key`', $key)->findCount()->getData();
+			if ($exists)
+			{
+				$pjOptionModel->reset()->where('foreign_id', $this->getForeignId())->where('`key`', $key)->limit(1)->modifyAll(array('value' => $value));
+			} else {
+				$pjOptionModel->reset()->setAttributes(array(
+					'foreign_id' => $this->getForeignId(),
+					'key' => $key,
+					'tab_id' => ':NULL',
+					'value' => $value,
+					'label' => ':NULL',
+					'type' => 'string',
+					'order' => ':NULL',
+					'is_visible' => 0,
+					'style' => ':NULL'
+				))->insert();
+			}
+			$saved++;
+		}
+		
+		self::jsonResponse(array('status' => 'OK', 'code' => 200, 'text' => 'Theme 11 settings saved.', 'saved' => $saved, 'values' => pjTheme11::values($pjOptionModel->reset()->getPairs($this->getForeignId()))));
 	}
 
 	public function pjActionNotificationsGetMetaData()

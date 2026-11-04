@@ -89,7 +89,7 @@ $bodies = __('error_bodies', true);
                                             <div class="<?php echo $tpl['is_flag_ready'] ? 'input-group ' : NULL;?>pj-multilang-wrap" data-index="<?php echo $v['id']; ?>" style="display: <?php echo (int) $v['is_default'] === 0 ? 'none' : 'table'; ?>">
 												<span class="input-group-addon"><i class="fa fa-globe"></i></span>
 			                                    
-												<input type="text" name="i18n[<?php echo $v['id']; ?>][terms_url]" type="text" value="<?php echo htmlspecialchars(stripslashes(@$tpl['arr']['i18n'][$v['id']]['terms_url'])); ?>" class="form-control url" />
+												<input type="text" name="i18n[<?php echo $v['id']; ?>][terms_url]" type="text" value="<?php echo htmlspecialchars(stripslashes((string) @$tpl['arr']['i18n'][$v['id']]['terms_url'])); ?>" class="form-control url" />
                                                 <?php if ($tpl['is_flag_ready']) : ?>
                                                 <span class="input-group-addon pj-multilang-input"><img src="<?php echo PJ_INSTALL_URL . PJ_FRAMEWORK_LIBS_PATH . 'pj/img/flags/' . $v['file']; ?>" alt="<?php echo pjSanitize::html($v['name']); ?>"></span>
                                                 <?php endif; ?>
@@ -115,7 +115,7 @@ $bodies = __('error_bodies', true);
                                         {
                                             ?>
                                             <div class="<?php echo $tpl['is_flag_ready'] ? 'input-group ' : NULL;?>pj-multilang-wrap" data-index="<?php echo $v['id']; ?>" style="display: <?php echo (int) $v['is_default'] === 0 ? 'none' : 'table'; ?>">
-                                                <textarea name="i18n[<?php echo $v['id']; ?>][terms_body]" class="form-control mceEditor" style="width: 400px; height: 260px;"><?php echo htmlspecialchars(stripslashes(@$tpl['arr']['i18n'][$v['id']]['terms_body'])); ?></textarea>
+                                                <textarea name="i18n[<?php echo $v['id']; ?>][terms_body]" class="form-control mceEditor" style="width: 400px; height: 260px;"><?php echo htmlspecialchars(stripslashes((string) @$tpl['arr']['i18n'][$v['id']]['terms_body'])); ?></textarea>
                                                 <?php if ($tpl['is_flag_ready']) : ?>
                                                 <span class="input-group-addon pj-multilang-input"><img src="<?php echo PJ_INSTALL_URL . PJ_FRAMEWORK_LIBS_PATH . 'pj/img/flags/' . $v['file']; ?>" alt="<?php echo pjSanitize::html($v['name']); ?>"></span>
                                                 <?php endif; ?>

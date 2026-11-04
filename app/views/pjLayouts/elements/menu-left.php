@@ -23,6 +23,9 @@ $isScriptBookingsExport = $isScriptBookingsController && in_array($action_name, 
 // Services
 $isScriptServices = in_array($controller_name, array('pjAdminServices'));
 
+// Vouchers
+$isScriptVouchers = in_array($controller_name, array('pjAdminVouchers'));
+
 // Employees
 $isScriptEmployees = in_array($controller_name, array('pjAdminEmployees'));
 
@@ -65,6 +68,9 @@ $hasAccessScriptBookingsList      = pjAuth::factory('pjAdminBookings', 'pjAction
 
 // Permissions - Services
 $hasAccessScriptServices          = pjAuth::factory('pjAdminServices')->hasAccess();
+
+// Permissions - Vouchers
+$hasAccessScriptVouchers          = pjAuth::factory('pjAdminVouchers')->hasAccess();
 
 // Permissions - Employees
 $hasAccessScriptEmployees         = pjAuth::factory('pjAdminEmployees')->hasAccess();
@@ -138,6 +144,12 @@ $hasAccessScriptOptionsReminder         = pjAuth::factory('pjAdminOptions', 'pjA
 <?php if ($hasAccessScriptServices): ?>
     <li<?php echo $isScriptServices ? ' class="active"' : NULL; ?>>
         <a href="<?php echo $_SERVER['PHP_SELF']; ?>?controller=pjAdminServices&amp;action=pjActionIndex"><i class="fa fa-list"></i> <span class="nav-label"><?php __('menuServices');?></span></a>
+    </li>
+<?php endif; ?>
+
+<?php if ($hasAccessScriptVouchers): ?>
+    <li<?php echo $isScriptVouchers ? ' class="active"' : NULL; ?>>
+        <a href="<?php echo $_SERVER['PHP_SELF']; ?>?controller=pjAdminVouchers&amp;action=pjActionIndex"><i class="fa fa-tag"></i> <span class="nav-label"><?php __('menuVouchers');?></span></a>
     </li>
 <?php endif; ?>
 

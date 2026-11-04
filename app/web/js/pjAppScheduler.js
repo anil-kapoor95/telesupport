@@ -386,6 +386,25 @@
 				}
 				hashBang("#!/Checkout");
 				return false;
+			}).on("click.as", ".asSelectorVoucherApply", function (e) {
+				if (e && e.preventDefault) {
+					e.preventDefault();
+				}
+				var $box = pjQ.$(this).closest(".pjAsVoucher");
+				that.applyVoucher.call(that, $box, pjQ.$.trim($box.find(".asSelectorVoucherCode").val()));
+				return false;
+			}).on("keydown.as", ".asSelectorVoucherCode", function (e) {
+				if (e.which === 13) {
+					e.preventDefault();
+					pjQ.$(this).closest(".pjAsVoucher").find(".asSelectorVoucherApply").trigger("click");
+					return false;
+				}
+			}).on("click.as", ".asSelectorVoucherRemove", function (e) {
+				if (e && e.preventDefault) {
+					e.preventDefault();
+				}
+				that.removeVoucher.call(that, pjQ.$(this).closest(".pjAsVoucher"));
+				return false;
 			}).on("click.as", ".asSelectorPreview", function (e) {
 				if (e && e.preventDefault) {
 					e.preventDefault();
@@ -764,6 +783,93 @@
 			
 			return this;
 		},
+		/**
+		 * Theme 11: payment methods as radio cards. They are built from the real <select name="payment_method">
+		 * (kept in the form, validated and submitted as before); the cards stay hidden in the other themes.
+		 */
+		buildPayCards: function () {
+			var $select = this.$container.find("select[name='payment_method']");
+			if (!$select.length || this.$container.find(".pjAsT11Pay").length) {
+				return;
+			}
+			var $wrap = pjQ.$('<div class="pjAsT11Pay" role="radiogroup"></div>');
+			$select.find("option").each(function () {
+				var value = pjQ.$(this).val();
+				if (!value) {
+					return;
+				}
+				var $input = pjQ.$('<input type="radio" class="ignore">').val(value).prop("checked", value === $select.val());
+				$wrap.append(pjQ.$('<label class="pjAsT11PayItem"></label>').append($input).append(pjQ.$("<span></span>").text(pjQ.$(this).text())));
+			});
+			if (!$wrap.children().length) {
+				return;
+			}
+			$wrap.on("change", "input", function () {
+				$wrap.find("input").not(this).prop("checked", false);
+				$select.val(pjQ.$(this).val()).trigger("change");
+				if (validate && $select.closest("form").data("validator")) {
+					$select.valid();
+				}
+			});
+			$select.before($wrap);
+		},
+		
+		/**
+		 * Voucher code box (details page). The server only remembers the code and recalculates every price itself;
+		 * on success the details page is reloaded and what the customer already typed is put back.
+		 */
+		applyVoucher: function ($box, code) {
+			var that = this,
+				$msg = $box.find(".asSelectorVoucherMsg"),
+				$ctrls = $box.find("input, button");
+			$ctrls.prop("disabled", true);
+			pjQ.$.post([this.options.folder, "index.php?controller=pjFrontEnd&action=pjActionApplyVoucher&cid=", this.options.cid, "&session_id=", this.options.session_id].join(""), {
+				"code": code
+			}).done(function (data) {
+				if (data && data.status == "OK") {
+					that.reloadCheckoutKeepingForm.call(that);
+				} else {
+					$msg.removeClass("pjAsVoucherOk").addClass("pjAsVoucherErr").text(data && data.text ? data.text : "").show();
+					$ctrls.prop("disabled", false);
+				}
+			}).fail(function () {
+				$ctrls.prop("disabled", false);
+			});
+		},
+		removeVoucher: function ($box) {
+			var that = this;
+			pjQ.$.post([this.options.folder, "index.php?controller=pjFrontEnd&action=pjActionRemoveVoucher&cid=", this.options.cid, "&session_id=", this.options.session_id].join(""), {}).done(function () {
+				that.reloadCheckoutKeepingForm.call(that);
+			});
+		},
+		reloadCheckoutKeepingForm: function () {
+			this.formState = this.$container.find(".asSelectorCheckoutForm").serializeArray();
+			this.keepScroll = pjQ.$(window).scrollTop();
+			this.loadCheckout.call(this);
+		},
+		restoreCheckoutForm: function () {
+			var $form = this.$container.find(".asSelectorCheckoutForm");
+			if (!this.formState || !$form.length) {
+				this.formState = null;
+				return;
+			}
+			pjQ.$.each(this.formState, function (i, item) {
+				if (item.name === "as_checkout") {
+					return;
+				}
+				var $f = $form.find("[name='" + item.name + "']");
+				if (!$f.length) {
+					return;
+				}
+				if ($f.is(":checkbox") || $f.is(":radio")) {
+					$f.filter(function () { return this.value === item.value; }).prop("checked", true);
+				} else {
+					$f.val(item.value);
+				}
+			});
+			this.formState = null;
+			$form.find("select[name='payment_method']").trigger("change");
+		},
 		loadCheckout: function () {
 			var that = this;
 			this.disableButtons.call(this);
@@ -777,6 +883,8 @@
 			}).done(function (data) {
 				that.$container.html(data);
 				pjQ.$('.modal-dialog').css("z-index", "9999"); 
+				that.restoreCheckoutForm.call(that);
+				that.buildPayCards.call(that);
 				
 				var $reCaptcha = that.$container.find('#g-recaptcha_' + that.options.cid);
 				if ($reCaptcha.length > 0)
@@ -850,9 +958,14 @@
 						}
 					});
 				}
-				pjQ.$('html, body').animate({
-			        scrollTop: that.$container.offset().top
-			    }, 500);
+				if (that.keepScroll !== undefined && that.keepScroll !== null) {
+					pjQ.$(window).scrollTop(that.keepScroll);
+					that.keepScroll = null;
+				} else {
+					pjQ.$('html, body').animate({
+				        scrollTop: that.$container.offset().top
+				    }, 500);
+				}
 			}).fail(function () {
 				that.enableButtons.call(that);
 			});
@@ -1005,7 +1118,13 @@
 									hashBang("#!/Booking/" + data.booking_uuid);
 								} else if (data.status == "ERR") {
 									that.enableButtons.call(that);
-									$form.find(".asSelectorError").html(data.text).show();
+									if (data.code == 116) {
+										// the voucher is no longer valid: show the page again with the real price, then explain why
+										that.voucherNotice = data.text;
+										that.loadPreview.call(that);
+									} else {
+										$form.find(".asSelectorError").html(data.text).show();
+									}
 								}
 							}).fail(function () {
 								that.enableButtons.call(that);
@@ -1013,6 +1132,10 @@
 							return false;
 						}
 					});
+				}
+				if (that.voucherNotice) {
+					that.$container.find(".asSelectorError").html(that.voucherNotice).show();
+					that.voucherNotice = null;
 				}
 				pjQ.$('html, body').animate({
 			        scrollTop: that.$container.offset().top

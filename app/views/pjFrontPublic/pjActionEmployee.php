@@ -7,6 +7,7 @@ $cart = $controller->cart->getAll();
 ?>
 
 <div class="container-fluid">
+	<?php $t11_step = 1; include PJ_VIEWS_PATH . 'pjFrontPublic/elements/t11_steps.php'; ?>
 	<div class="row">
 		<div class="col-lg-12 text-right">
 			<?php include PJ_VIEWS_PATH . 'pjFrontEnd/elements/locale.php';?>
@@ -66,7 +67,7 @@ $cart = $controller->cart->getAll();
 									<div class="col-lg-9 col-md-9 col-sm-9 col-xs-12">
 										<h2 class="pjAsListElementTitle text-capitalize"><?php echo pjSanitize::html($employee['name']); ?></h2><!-- /.pjAsListElementTitle -->
 										
-										<h3 class="pjAsEmployeePosition text-capitalize"><?php echo pjSanitize::html($employee['services']); ?></h3><!-- /.pjAsEmployeePosition -->
+										<h3 class="pjAsEmployeePosition text-capitalize"><?php echo pjTheme11::positionChips($employee['services']); ?></h3><!-- /.pjAsEmployeePosition -->
 										
 										<p><?php echo nl2br(pjSanitize::html($employee['notes'])); ?></p>
 										<?php
@@ -156,6 +157,7 @@ $cart = $controller->cart->getAll();
 																echo $time_table;
 																?>
 															</div><!-- /.pjAsTableTimes -->
+															<?php include PJ_VIEWS_PATH . 'pjFrontPublic/elements/t11_legend.php'; ?>
 														</div><!-- /.col-lg-8 col-md-8 col-sm-8 col-sx-12 -->
 													</div><!-- /.form-group -->
 													

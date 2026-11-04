@@ -33,6 +33,7 @@ $short_days = __('short_days', true);
 				<input type="hidden" name="booking_tax" id="booking_tax" >
 				<input type="hidden" name="booking_total" id="booking_total" >
 				<input type="hidden" name="booking_deposit" id="booking_deposit" >
+				<input type="hidden" name="voucher_code" id="voucher_code" value="<?php echo pjSanitize::html('' ); ?>" />
 				<div class="tab-content">
 					<div role="tabpanel" class="tab-pane active" id="booking-details">
 						<div class="panel-body">
@@ -309,7 +310,16 @@ $short_days = __('short_days', true);
             	?>
 
                 <div class="panel-body">
+                    <div class="form-group m-b-md">
+                        <label class="control-label"><?php __('booking_voucher'); ?></label>
+                        <div class="input-group">
+                            <input type="text" id="voucher_input" class="form-control" maxlength="50" autocomplete="off" value="<?php echo pjSanitize::html('' ); ?>">
+                            <span class="input-group-btn"><button type="button" class="btn btn-primary" id="btnApplyVoucher"><?php __('front_voucher_apply'); ?></button></span>
+                        </div>
+                        <p class="help-block m-b-none" id="voucherMsg" style="display:none"></p>
+                    </div>
                     <p class="lead m-b-md"><?php __('booking_price'); ?>: <span id="price_format" class="pull-right"><?php echo pjCurrency::formatPrice(0); ?></span></p>
+                    <p class="lead m-b-md" id="discount_row"<?php echo (0) > 0 ? '' : ' style="display:none"'; ?>><?php __('booking_discount'); ?>: <span id="discount_format" class="pull-right">-<?php echo pjCurrency::formatPrice(0); ?></span></p>
                     <p class="lead m-b-md"><?php __('booking_tax'); ?>: <span id="tax_format" class="pull-right"><?php echo pjCurrency::formatPrice(0); ?></span></p>
 
                     <div class="hr-line-dashed"></div>
